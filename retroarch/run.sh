@@ -71,12 +71,16 @@ play() {
 pair_pad() {
     local old
     bashio::log.info "Parowanie: trzymaj Share + PS, az swiatlo zacznie podwojnie migac"
-    old=$(bluetoothctl devices | grep -i 'wireless controller' | awk 'NR==1{print $2}')
-    [ -n "$old" ] && bluetoothctl remove "$old"
+    old=$(bluetoothctl devices | grep -i 'wireless controller' | awk 'NR==1{print $2}' || true)
+    if [ -n "$old" ]; then bluetoothctl remove "$old" || true; fi
     {
         printf 'power on\nagent NoInputNoOutput\ndefault-agent\npairable on\nscan on\n'
-        sleep 30
-        mac=$(bluetoothctl devices | grep -i 'wireless controller' | awk 'NR==1{print $2}')
+        mac=""
+        for _ in $(seq 1 60); do
+            mac=$(bluetoothctl devices | grep -i 'wireless controller' | awk 'NR==1{print $2}' || true)
+            if [ -n "$mac" ]; then break; fi
+            sleep 1
+        done
         if [ -n "$mac" ]; then
             printf 'scan off\npair %s\n' "$mac"; sleep 10
             printf 'trust %s\n' "$mac"; sleep 2
