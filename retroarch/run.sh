@@ -18,6 +18,9 @@ finish() {
         for _ in $(seq 1 50); do kill -0 "$GAME_PID" 2>/dev/null || break; sleep 0.1; done
         kill -KILL "$GAME_PID" 2>/dev/null
     fi
+    if [ -n "$GAME_PID" ]; then
+        curl -sS -m 10 -X POST -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" -H "Content-Type: application/json" -d '{}' http://supervisor/core/api/services/script/fh_end_game >/dev/null || true
+    fi
     bashio::log.info "Przywracam kiosk ${KIOSK}"
     supervisor "${KIOSK}/start" || bashio::log.error "Nie udalo sie uruchomic kiosku"
     exit 0
