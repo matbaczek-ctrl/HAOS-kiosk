@@ -63,6 +63,9 @@ play() {
     { cat /etc/fh-retroarch.cfg
       echo "savefile_directory = \"$dir/saves\""
       echo "savestate_directory = \"$dir/states\""; } > /tmp/ra.cfg
+    if [ "$game" = mario ] || [ "$game" = smw ]; then
+        sed -i 's/^input_player2_joypad_index = .*/input_player2_joypad_index = "0"/' /tmp/ra.cfg
+    fi
     retroarch --config /tmp/ra.cfg -f -L "$CORE" "$ROM_DIR/$rom" $(bashio::config.true 'debug' && echo --verbose) &
     GAME_PID=$!
     local end=$(( $(date +%s) + minutes * 60 )) line left
