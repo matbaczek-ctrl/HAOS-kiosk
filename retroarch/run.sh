@@ -2,6 +2,7 @@
 # Protokol stdin (hassio.addon_stdin):  play <gra> <osoba> <minuty>  |  quit
 # Kiosk wraca zawsze: po koncu czasu, wyjsciu z gry, bledzie i zatrzymaniu aplikacji.
 set -u
+export QT_QPA_PLATFORM=offscreen
 KIOSK=$(bashio::config 'kiosk_slug')
 ROM_DIR=$(bashio::config 'rom_dir')
 DATA=/config
