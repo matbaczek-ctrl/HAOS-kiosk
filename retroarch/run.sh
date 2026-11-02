@@ -63,9 +63,13 @@ play() {
       echo "savestate_directory = \"$dir/states\""; } > /tmp/ra.cfg
     retroarch --config /tmp/ra.cfg -f -L "$CORE" "$ROM_DIR/$rom" $(bashio::config.true 'debug' && echo --verbose) &
     GAME_PID=$!
-    local end=$(( $(date +%s) + minutes * 60 )) line
+    local end=$(( $(date +%s) + minutes * 60 )) line left
     while kill -0 "$GAME_PID" 2>/dev/null; do
         [ "$(date +%s)" -ge "$end" ] && { bashio::log.info "Koniec czasu"; return 0; }
+        left=$(( end - $(date +%s) ))
+        if [ $(( left % 3 )) -eq 0 ]; then
+            printf 'SHOW_MSG Czas: %d:%02d' $(( left / 60 )) $(( left % 60 )) > /dev/udp/127.0.0.1/55355 2>/dev/null || true
+        fi
         if read -r -t 1 line && [ "${line//\"/}" = quit ]; then return 0; fi
     done
     bashio::log.info "Gra zakonczona"
