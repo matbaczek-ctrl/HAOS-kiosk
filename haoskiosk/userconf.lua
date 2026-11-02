@@ -149,6 +149,9 @@ end)
 -- Set zoom level for windows (default 100%)
 settings.webview.zoom_level = zoom_level
 
+settings.webview.enable_webgl = true
+settings.webview.enable_webaudio = true
+
 -- Set default new tab and window to blank page, rather than commercial luakit page
 settings.window.home_page    = "about:blank"
 settings.window.new_tab_page = "about:blank"
