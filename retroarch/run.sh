@@ -69,20 +69,20 @@ play() {
 }
 
 pair_pad() {
-    local mac
     bashio::log.info "Parowanie: trzymaj Share + PS, az swiatlo zacznie podwojnie migac"
-    bluetoothctl power on
-    bluetoothctl --timeout 40 scan on
-    bluetoothctl devices
-    mac=$(bluetoothctl devices | grep -i 'wireless controller' | awk 'NR==1{print $2}')
-    [ -n "$mac" ] || { bashio::log.error "Nie znaleziono pada"; return 1; }
-    bashio::log.info "Znaleziono pada: $mac"
-    bluetoothctl --agent NoInputNoOutput pair "$mac"
-    bluetoothctl trust "$mac"
-    bluetoothctl connect "$mac"
-    sleep 3
-    bluetoothctl info "$mac"
-    ls -l /dev/input/ /dev/hidraw* 2>&1
+    {
+        printf 'power on\nagent NoInputNoOutput\ndefault-agent\npairable on\nscan on\n'
+        sleep 30
+        mac=$(bluetoothctl devices | grep -i 'wireless controller' | awk 'NR==1{print $2}')
+        if [ -n "$mac" ]; then
+            printf 'scan off\npair %s\n' "$mac"; sleep 10
+            printf 'trust %s\n' "$mac"; sleep 2
+            printf 'connect %s\n' "$mac"; sleep 10
+            printf 'info %s\n' "$mac"; sleep 2
+        fi
+        printf 'quit\n'
+    } | bluetoothctl
+    ls -l /dev/input/ 2>&1
 }
 
 bashio::config.true 'debug' && retroarch --features 2>&1 | grep -iE "kms|egl|udev|pulse"
