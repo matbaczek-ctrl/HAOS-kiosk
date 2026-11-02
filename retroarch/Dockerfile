@@ -3,7 +3,7 @@ FROM $BUILD_FROM
 
 # RetroArch z Alpine; jadro SNES budujemy ze zrodel, bo Alpine ma je tylko w "testing"
 RUN apk add --no-cache retroarch mesa-dri-gallium udev bash curl jq util-linux \
- && apk add --no-cache --virtual .build build-base git \
+ && apk add --no-cache --virtual .build build-base linux-headers git \
  && git clone --depth 1 https://github.com/libretro/snes9x2010 /tmp/core \
  && make -C /tmp/core -f Makefile -j2 \
  && mkdir -p /usr/lib/libretro \
