@@ -33,6 +33,8 @@ rom_for() {
         bomberman) echo bomberman.sfc ;;
         zelda) echo zelda.sfc ;;
         pop) echo pop.sfc ;;
+        kirby) echo kirby.sfc ;;
+        mk3) echo mk3.sfc ;;
         *) return 1 ;;
     esac
 }
