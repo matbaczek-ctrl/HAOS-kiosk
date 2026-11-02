@@ -14,9 +14,9 @@ supervisor() { curl -sS -m 30 -X POST -H "Authorization: Bearer ${SUPERVISOR_TOK
 finish() {
     trap - EXIT INT TERM
     if [ -n "$GAME_PID" ] && kill -0 "$GAME_PID" 2>/dev/null; then
-        kill -TERM "$GAME_PID"            # czyste wyjscie = zapis stanu gry
+        kill -TERM "$GAME_PID" 2>/dev/null || true   # czyste wyjscie = zapis stanu gry
         for _ in $(seq 1 50); do kill -0 "$GAME_PID" 2>/dev/null || break; sleep 0.1; done
-        kill -KILL "$GAME_PID" 2>/dev/null
+        kill -KILL "$GAME_PID" 2>/dev/null || true
     fi
     if [ -n "$GAME_PID" ]; then
         curl -sS -m 10 -X POST -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" -H "Content-Type: application/json" -d '{}' http://supervisor/core/api/services/script/fh_end_game >/dev/null || true
