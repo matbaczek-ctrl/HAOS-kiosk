@@ -85,6 +85,21 @@ pair_pad() {
     ls -l /dev/input/ 2>&1
 }
 
+connect_pad() {
+    local mac
+    bluetoothctl show
+    mac=$(bluetoothctl devices | grep -i 'wireless controller' | awk 'NR==1{print $2}')
+    [ -n "$mac" ] || { bashio::log.error "Brak sparowanego pada"; return 1; }
+    for _ in $(seq 1 20); do
+        bluetoothctl --timeout 5 connect "$mac"
+        bluetoothctl info "$mac" | grep -q 'Connected: yes' && { bashio::log.info "Pad polaczony"; break; }
+        sleep 1
+    done
+    sleep 5
+    bluetoothctl info "$mac"
+    ls -l /dev/input/ 2>&1
+}
+
 bashio::config.true 'debug' && retroarch --features 2>&1 | grep -iE "kms|egl|udev|pulse"
 start_udev
 bashio::log.info "Czekam na polecenie play"
@@ -97,6 +112,8 @@ if [ "${cmd:-}" = play ]; then
     play "${game:-}" "${person:-}" "${minutes:-}"
 elif [ "${cmd:-}" = pair ]; then
     pair_pad
+elif [ "${cmd:-}" = connect ]; then
+    connect_pad
 else
     bashio::log.warning "Brak polecenia play, koncze"
 fi
