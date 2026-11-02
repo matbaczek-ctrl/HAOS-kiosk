@@ -62,7 +62,7 @@ play() {
     local end=$(( $(date +%s) + minutes * 60 )) line
     while kill -0 "$GAME_PID" 2>/dev/null; do
         [ "$(date +%s)" -ge "$end" ] && { bashio::log.info "Koniec czasu"; return 0; }
-        if read -r -t 1 line && [ "$line" = quit ]; then return 0; fi
+        if read -r -t 1 line && [ "${line//\"/}" = quit ]; then return 0; fi
     done
     bashio::log.info "Gra zakonczona"
 }
@@ -70,8 +70,13 @@ play() {
 bashio::config.true 'debug' && retroarch --features 2>&1 | grep -iE "kms|egl|udev|pulse"
 start_udev
 bashio::log.info "Czekam na polecenie play"
-if read -r -t 60 cmd game person minutes && [ "$cmd" = play ]; then
-    play "$game" "$person" "$minutes"
+line=""
+read -r -t 60 line
+line=${line//\"/}                          # hassio.addon_stdin wysyla tekst w cudzyslowach
+bashio::log.info "Polecenie: $line"
+read -r cmd game person minutes _ <<< "$line"
+if [ "${cmd:-}" = play ]; then
+    play "${game:-}" "${person:-}" "${minutes:-}"
 else
     bashio::log.warning "Brak polecenia play, koncze"
 fi
