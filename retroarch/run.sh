@@ -97,6 +97,8 @@ connect_pad() {
     bluetoothctl show
     mac=$(bluetoothctl devices | grep -i 'wireless controller' | awk 'NR==1{print $2}')
     [ -n "$mac" ] || { bashio::log.error "Brak sparowanego pada"; return 1; }
+    bluetoothctl trust "$mac" || true
+    bluetoothctl info "$mac" | grep -E 'Trusted|Bonded' || true
     for _ in $(seq 1 20); do
         bluetoothctl --timeout 5 connect "$mac"
         bluetoothctl info "$mac" | grep -q 'Connected: yes' && { bashio::log.info "Pad polaczony"; break; }
