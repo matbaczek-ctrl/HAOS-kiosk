@@ -9,6 +9,7 @@ DATA=/config
 CORE=/usr/lib/libretro/snes9x2010_libretro.so
 GAME_PID=""
 ENDED=""
+UNLIMITED=""
 MOVIE_DIR=/media/bajki
 
 supervisor() { curl -sS -m 30 -X POST -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" "http://supervisor/addons/$1" >/dev/null; }
@@ -82,9 +83,9 @@ play() {
     GAME_PID=$!
     local end=$(( $(date +%s) + secs )) line left
     while kill -0 "$GAME_PID" 2>/dev/null; do
-        [ "$(date +%s)" -ge "$end" ] && { bashio::log.info "Koniec czasu"; ENDED=time; return 0; }
+        [ -z "$UNLIMITED" ] && [ "$(date +%s)" -ge "$end" ] && { bashio::log.info "Koniec czasu"; ENDED=time; return 0; }
         left=$(( end - $(date +%s) ))
-        if [ $(( left % 3 )) -eq 0 ]; then
+        if [ -z "$UNLIMITED" ] && [ $(( left % 3 )) -eq 0 ]; then
             printf 'SHOW_MSG Czas: %d:%02d' $(( left / 60 )) $(( left % 60 )) > /dev/udp/127.0.0.1/55355 2>/dev/null || true
         fi
         if read -r -t 1 line && [ "${line//\"/}" = quit ]; then ENDED=time; return 0; fi
@@ -206,6 +207,9 @@ bashio::log.info "Polecenie: $line"
 read -r cmd arg1 arg2 arg3 <<< "$line"
 if [ "${cmd:-}" = play ]; then
     play "${arg1:-}" "${arg2:-}" "${arg3:-}"
+elif [ "${cmd:-}" = test ]; then
+    UNLIMITED=1
+    play "${arg1:-}" "${arg2:-}" 3600
 elif [ "${cmd:-}" = movie ]; then
     movie "${arg1:-}" "${arg2:-}" "${arg3:-}"
 elif [ "${cmd:-}" = pair ]; then
