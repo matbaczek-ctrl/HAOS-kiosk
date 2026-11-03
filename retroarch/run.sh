@@ -90,7 +90,7 @@ touch_devices() {
 }
 
 movie() {
-    local person=$1 secs=$2 name=$3 file dir dev end now armed=0
+    local person=$1 secs=$2 name=$3 file dir dev end now armed=0 quiet=0
     [[ "$person" =~ ^[a-z0-9_]{1,20}$ ]] || { bashio::log.error "Zla osoba"; return 1; }
     [[ "$secs" =~ ^[0-9]{1,4}$ ]] && [ "$secs" -ge 1 ] && [ "$secs" -le 3600 ] || { bashio::log.error "Zly czas"; return 1; }
     case "$name" in ""|*/*|*..*) bashio::log.error "Zla nazwa bajki"; return 1 ;; esac
@@ -109,7 +109,7 @@ movie() {
     ls -l /dev/input/ 2>&1 | head -12
     bashio::log.info "Dotyk: [$(touch_devices | tr '\n' ' ')]"
     for dev in $(touch_devices); do
-        ( while head -c 24 "$dev" >/dev/null 2>&1; do : > /tmp/tap; done ) &
+        ( while dd if="$dev" of=/dev/null bs=4096 count=1 2>/dev/null; do : > /tmp/tap; done ) &
     done
     end=$(( $(date +%s) + secs ))
     sleep 3; rm -f /tmp/tap
@@ -122,17 +122,21 @@ movie() {
         fi
         if [ -e /tmp/tap ]; then
             rm -f /tmp/tap
-            bashio::log.info "Dotkniecie ekranu"
-            if [ "$armed" -gt 0 ] && [ $(( now - armed )) -ge 2 ] && [ $(( now - armed )) -le 6 ]; then
+            bashio::log.info "Dotkniecie ekranu (cisza $quiet)"
+            if [ "$armed" -gt 0 ] && [ "$quiet" -ge 2 ] && [ $(( now - armed )) -le 8 ]; then
                 mpv_cmd '"quit-watch-later"'
                 return 0
             fi
-            if [ "$armed" -eq 0 ] || [ $(( now - armed )) -gt 6 ]; then
+            if [ "$armed" -eq 0 ] || [ $(( now - armed )) -gt 8 ]; then
                 armed=$now
+                quiet=0
                 mpv_cmd '"show-text","Dotknij jeszcze raz, zeby wyjsc",4000'
             fi
+            quiet=0
+        else
+            quiet=$(( quiet + 1 ))
         fi
-        if [ "$armed" -eq 0 ] || [ $(( now - armed )) -gt 6 ]; then
+        if [ "$armed" -eq 0 ] || [ $(( now - armed )) -gt 8 ]; then
             mpv_cmd "\"show-text\",\"Czas: $(( (end - now) / 60 )):$(printf %02d $(( (end - now) % 60 )))\",1500"
         fi
         if read -r -t 1 line && [ "${line//\"/}" = quit ]; then ENDED=time; mpv_cmd '"quit-watch-later"'; return 0; fi
