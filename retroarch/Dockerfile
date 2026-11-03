@@ -11,6 +11,9 @@ RUN apk add --no-cache retroarch mesa-dri-gallium udev bash curl jq util-linux b
  && rm -rf /tmp/core \
  && apk del .build
 
+# Czcionka do napisow i licznika w bajkach
+RUN apk add --no-cache ttf-dejavu fontconfig
+
 COPY retroarch.cfg /etc/fh-retroarch.cfg
 COPY run.sh /run.sh
 RUN chmod a+x /run.sh
