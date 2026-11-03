@@ -42,6 +42,7 @@ rom_for() {
         crash) echo "Crash Bandicoot 3.cue" ;;
         toystory) echo IMAGE.CCD ;;
         legoracers) echo "LEGO RACERS.cue" ;;
+        tekken3) echo "Playstation Tekken 3 NTSC USA.cue" ;;
         *) return 1 ;;
     esac
 }
@@ -58,7 +59,7 @@ start_udev() {
 
 play() {
     local game=$1 person=$2 secs=$3 rom dir core=$CORE
-    case "$game" in thps4|crash|toystory|legoracers) core=/usr/lib/libretro/pcsx_rearmed_libretro.so ;; esac
+    case "$game" in thps4|crash|toystory|legoracers|tekken3) core=/usr/lib/libretro/pcsx_rearmed_libretro.so ;; esac
     rom=$(rom_for "$game") || { bashio::log.error "Nieznana gra: $game"; return 1; }
     [[ "$person" =~ ^[a-z0-9_]{1,20}$ ]] || { bashio::log.error "Zla osoba"; return 1; }
     [[ "$secs" =~ ^[0-9]{1,4}$ ]] && [ "$secs" -ge 1 ] && [ "$secs" -le 3600 ] || { bashio::log.error "Zly czas"; return 1; }
@@ -71,6 +72,9 @@ play() {
     { cat /etc/fh-retroarch.cfg
       echo "savefile_directory = \"$dir/saves\""
       echo "savestate_directory = \"$dir/states\""; } > /tmp/ra.cfg
+    mkdir -p /tmp/system
+    [ -r "$ROM_DIR/SCPH1001.BIN" ] && ln -sf "$ROM_DIR/SCPH1001.BIN" /tmp/system/scph1001.bin
+    echo 'system_directory = "/tmp/system"' >> /tmp/ra.cfg
     if [ "$game" = mario ] || [ "$game" = smw ]; then
         sed -i 's/^input_player2_joypad_index = .*/input_player2_joypad_index = "0"/' /tmp/ra.cfg
     fi
