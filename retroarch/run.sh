@@ -103,7 +103,7 @@ movie() {
     dir="$DATA/$person/watch_later"; mkdir -p "$dir"
     mpv --no-config --fullscreen --vo=gpu --gpu-context=drm --hwdec=auto-copy-safe --ao=pulse,alsa \
         --no-input-terminal --no-terminal --save-position-on-quit --watch-later-dir="$dir" \
-        --input-ipc-server=/tmp/mpv.sock --osd-font-size=44 --msg-level=all=warn --log-file=/tmp/mpv.log "$file" </dev/null &
+        --input-ipc-server=/tmp/mpv.sock --osd-font-size=34 --osd-align-x=right --osd-align-y=top --msg-level=all=warn --log-file=/tmp/mpv.log "$file" </dev/null &
     GAME_PID=$!
     for dev in $(touch_devices); do
         ( while head -c 24 "$dev" >/dev/null 2>&1; do : > /tmp/tap; done ) &
@@ -127,6 +127,9 @@ movie() {
                 armed=$now
                 mpv_cmd '"show-text","Dotknij jeszcze raz, zeby wyjsc",4000'
             fi
+        fi
+        if [ "$armed" -eq 0 ] || [ $(( now - armed )) -gt 6 ]; then
+            mpv_cmd "\"show-text\",\"Czas: $(( (end - now) / 60 )):$(printf %02d $(( (end - now) % 60 )))\",1500"
         fi
         if read -r -t 1 line && [ "${line//\"/}" = quit ]; then ENDED=time; mpv_cmd '"quit-watch-later"'; return 0; fi
     done
