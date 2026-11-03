@@ -38,6 +38,7 @@ rom_for() {
         pop) echo pop.sfc ;;
         kirby) echo kirby.sfc ;;
         mk3) echo mk3.sfc ;;
+        thps2) echo thps2.iso ;;
         *) return 1 ;;
     esac
 }
@@ -53,7 +54,8 @@ start_udev() {
 }
 
 play() {
-    local game=$1 person=$2 secs=$3 rom dir
+    local game=$1 person=$2 secs=$3 rom dir core=$CORE
+    [ "$game" = thps2 ] && core=/usr/lib/libretro/pcsx_rearmed_libretro.so
     rom=$(rom_for "$game") || { bashio::log.error "Nieznana gra: $game"; return 1; }
     [[ "$person" =~ ^[a-z0-9_]{1,20}$ ]] || { bashio::log.error "Zla osoba"; return 1; }
     [[ "$secs" =~ ^[0-9]{1,4}$ ]] && [ "$secs" -ge 1 ] && [ "$secs" -le 3600 ] || { bashio::log.error "Zly czas"; return 1; }
@@ -69,7 +71,7 @@ play() {
     if [ "$game" = mario ] || [ "$game" = smw ]; then
         sed -i 's/^input_player2_joypad_index = .*/input_player2_joypad_index = "0"/' /tmp/ra.cfg
     fi
-    retroarch --config /tmp/ra.cfg -f -L "$CORE" "$ROM_DIR/$rom" $(bashio::config.true 'debug' && echo --verbose) &
+    retroarch --config /tmp/ra.cfg -f -L "$core" "$ROM_DIR/$rom" $(bashio::config.true 'debug' && echo --verbose) &
     GAME_PID=$!
     local end=$(( $(date +%s) + secs )) line left
     while kill -0 "$GAME_PID" 2>/dev/null; do
