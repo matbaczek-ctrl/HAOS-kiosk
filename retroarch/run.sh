@@ -38,7 +38,7 @@ rom_for() {
         pop) echo pop.sfc ;;
         kirby) echo kirby.sfc ;;
         mk3) echo mk3.sfc ;;
-        thps2) echo thps2.iso ;;
+        thps4) echo THPS4.cue ;;
         *) return 1 ;;
     esac
 }
@@ -55,7 +55,7 @@ start_udev() {
 
 play() {
     local game=$1 person=$2 secs=$3 rom dir core=$CORE
-    [ "$game" = thps2 ] && core=/usr/lib/libretro/pcsx_rearmed_libretro.so
+    [ "$game" = thps4 ] && core=/usr/lib/libretro/pcsx_rearmed_libretro.so
     rom=$(rom_for "$game") || { bashio::log.error "Nieznana gra: $game"; return 1; }
     [[ "$person" =~ ^[a-z0-9_]{1,20}$ ]] || { bashio::log.error "Zla osoba"; return 1; }
     [[ "$secs" =~ ^[0-9]{1,4}$ ]] && [ "$secs" -ge 1 ] && [ "$secs" -le 3600 ] || { bashio::log.error "Zly czas"; return 1; }
