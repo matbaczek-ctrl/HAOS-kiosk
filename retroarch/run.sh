@@ -105,6 +105,9 @@ movie() {
         --no-input-terminal --no-terminal --save-position-on-quit --watch-later-dir="$dir" \
         --input-ipc-server=/tmp/mpv.sock --osd-font-size=34 --osd-align-x=right --osd-align-y=top --msg-level=all=warn --log-file=/tmp/mpv.log "$file" </dev/null &
     GAME_PID=$!
+    grep -E "^(N: Name|H: Handlers)" /proc/bus/input/devices 2>&1 | head -30
+    ls -l /dev/input/ 2>&1 | head -12
+    bashio::log.info "Dotyk: [$(touch_devices | tr '\n' ' ')]"
     for dev in $(touch_devices); do
         ( while head -c 24 "$dev" >/dev/null 2>&1; do : > /tmp/tap; done ) &
     done
@@ -119,6 +122,7 @@ movie() {
         fi
         if [ -e /tmp/tap ]; then
             rm -f /tmp/tap
+            bashio::log.info "Dotkniecie ekranu"
             if [ "$armed" -gt 0 ] && [ $(( now - armed )) -ge 2 ] && [ $(( now - armed )) -le 6 ]; then
                 mpv_cmd '"quit-watch-later"'
                 return 0
