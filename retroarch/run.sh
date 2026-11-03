@@ -180,6 +180,7 @@ start_udev
 bashio::log.info "Czekam na polecenie play"
 line=""
 read -r -t 60 line
+case "$line" in \"*) line=$(printf %s "$line" | jq -r . 2>/dev/null || printf %s "$line") ;; esac # stdin to JSON: polskie litery jako kody u0142
 line=${line//\"/}                          # hassio.addon_stdin wysyla tekst w cudzyslowach
 bashio::log.info "Polecenie: $line"
 read -r cmd arg1 arg2 arg3 <<< "$line"
