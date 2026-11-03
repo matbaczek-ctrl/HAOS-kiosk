@@ -39,6 +39,8 @@ rom_for() {
         kirby) echo kirby.sfc ;;
         mk3) echo mk3.sfc ;;
         thps4) echo THPS4.cue ;;
+        crash) echo "Crash Bandicoot 3.cue" ;;
+        toystory) echo IMAGE.CCD ;;
         *) return 1 ;;
     esac
 }
@@ -55,7 +57,7 @@ start_udev() {
 
 play() {
     local game=$1 person=$2 secs=$3 rom dir core=$CORE
-    [ "$game" = thps4 ] && core=/usr/lib/libretro/pcsx_rearmed_libretro.so
+    case "$game" in thps4|crash|toystory) core=/usr/lib/libretro/pcsx_rearmed_libretro.so ;; esac
     rom=$(rom_for "$game") || { bashio::log.error "Nieznana gra: $game"; return 1; }
     [[ "$person" =~ ^[a-z0-9_]{1,20}$ ]] || { bashio::log.error "Zla osoba"; return 1; }
     [[ "$secs" =~ ^[0-9]{1,4}$ ]] && [ "$secs" -ge 1 ] && [ "$secs" -le 3600 ] || { bashio::log.error "Zly czas"; return 1; }
