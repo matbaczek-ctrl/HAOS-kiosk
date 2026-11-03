@@ -8,17 +8,20 @@ ROM_DIR=$(bashio::config 'rom_dir')
 DATA=/config
 CORE=/usr/lib/libretro/snes9x2010_libretro.so
 GAME_PID=""
+ENDED=""
+MOVIE_DIR=/media/bajki
 
 supervisor() { curl -sS -m 30 -X POST -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" "http://supervisor/addons/$1" >/dev/null; }
 
 finish() {
     trap - EXIT INT TERM
     if [ -n "$GAME_PID" ] && kill -0 "$GAME_PID" 2>/dev/null; then
+        for _ in $(seq 1 30); do kill -0 "$GAME_PID" 2>/dev/null || break; sleep 0.1; done
         kill -TERM "$GAME_PID" 2>/dev/null || true   # czyste wyjscie = zapis stanu gry
         for _ in $(seq 1 50); do kill -0 "$GAME_PID" 2>/dev/null || break; sleep 0.1; done
         kill -KILL "$GAME_PID" 2>/dev/null || true
     fi
-    if [ -n "$GAME_PID" ]; then
+    if [ "$ENDED" = time ]; then
         curl -sS -m 10 -X POST -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" -H "Content-Type: application/json" -d '{}' http://supervisor/core/api/services/script/fh_end_game >/dev/null || true
     fi
     bashio::log.info "Przywracam kiosk ${KIOSK}"
@@ -50,13 +53,13 @@ start_udev() {
 }
 
 play() {
-    local game=$1 person=$2 minutes=$3 rom dir
+    local game=$1 person=$2 secs=$3 rom dir
     rom=$(rom_for "$game") || { bashio::log.error "Nieznana gra: $game"; return 1; }
     [[ "$person" =~ ^[a-z0-9_]{1,20}$ ]] || { bashio::log.error "Zla osoba"; return 1; }
-    [[ "$minutes" =~ ^[0-9]{1,2}$ ]] && [ "$minutes" -ge 1 ] && [ "$minutes" -le 60 ] || { bashio::log.error "Zly czas"; return 1; }
+    [[ "$secs" =~ ^[0-9]{1,4}$ ]] && [ "$secs" -ge 1 ] && [ "$secs" -le 3600 ] || { bashio::log.error "Zly czas"; return 1; }
     [ -r "$ROM_DIR/$rom" ] || { bashio::log.error "Brak pliku $ROM_DIR/$rom"; return 1; }
 
-    bashio::log.info "Start: $game, $person, $minutes min"
+    bashio::log.info "Start: $game, $person, $secs s"
     supervisor "${KIOSK}/stop" || bashio::log.warning "Nie udalo sie zatrzymac kiosku"
     sleep 2                                # kiosk musi oddac ekran
     dir="$DATA/$person"; mkdir -p "$dir/saves" "$dir/states"
@@ -68,16 +71,67 @@ play() {
     fi
     retroarch --config /tmp/ra.cfg -f -L "$CORE" "$ROM_DIR/$rom" $(bashio::config.true 'debug' && echo --verbose) &
     GAME_PID=$!
-    local end=$(( $(date +%s) + minutes * 60 )) line left
+    local end=$(( $(date +%s) + secs )) line left
     while kill -0 "$GAME_PID" 2>/dev/null; do
-        [ "$(date +%s)" -ge "$end" ] && { bashio::log.info "Koniec czasu"; return 0; }
+        [ "$(date +%s)" -ge "$end" ] && { bashio::log.info "Koniec czasu"; ENDED=time; return 0; }
         left=$(( end - $(date +%s) ))
         if [ $(( left % 3 )) -eq 0 ]; then
             printf 'SHOW_MSG Czas: %d:%02d' $(( left / 60 )) $(( left % 60 )) > /dev/udp/127.0.0.1/55355 2>/dev/null || true
         fi
-        if read -r -t 1 line && [ "${line//\"/}" = quit ]; then return 0; fi
+        if read -r -t 1 line && [ "${line//\"/}" = quit ]; then ENDED=time; return 0; fi
     done
     bashio::log.info "Gra zakonczona"
+}
+
+mpv_cmd() { printf '{"command":[%s]}\n' "$1" | socat -t1 - UNIX-CONNECT:/tmp/mpv.sock >/dev/null 2>&1 || true; }
+
+touch_devices() {
+    awk 'BEGIN{RS="";FS="\n"} tolower($0) ~ /name=.*touch/ { if (match($0,/event[0-9]+/)) print "/dev/input/" substr($0,RSTART,RLENGTH) }' /proc/bus/input/devices
+}
+
+movie() {
+    local person=$1 secs=$2 name=$3 file dir dev end now armed=0
+    [[ "$person" =~ ^[a-z0-9_]{1,20}$ ]] || { bashio::log.error "Zla osoba"; return 1; }
+    [[ "$secs" =~ ^[0-9]{1,4}$ ]] && [ "$secs" -ge 1 ] && [ "$secs" -le 3600 ] || { bashio::log.error "Zly czas"; return 1; }
+    case "$name" in ""|*/*|*..*) bashio::log.error "Zla nazwa bajki"; return 1 ;; esac
+    file="$MOVIE_DIR/$name"
+    [ -r "$file" ] || { bashio::log.error "Brak pliku $file"; return 1; }
+
+    bashio::log.info "Bajka: $name, $person, $secs s"
+    supervisor "${KIOSK}/stop" || bashio::log.warning "Nie udalo sie zatrzymac kiosku"
+    sleep 2
+    dir="$DATA/$person/watch_later"; mkdir -p "$dir"
+    mpv --no-config --fullscreen --vo=gpu --gpu-context=drm --hwdec=auto-copy-safe --ao=pulse,alsa \
+        --no-input-terminal --no-terminal --save-position-on-quit --watch-later-dir="$dir" \
+        --input-ipc-server=/tmp/mpv.sock --osd-font-size=44 --msg-level=all=warn --log-file=/tmp/mpv.log "$file" </dev/null &
+    GAME_PID=$!
+    for dev in $(touch_devices); do
+        ( while head -c 24 "$dev" >/dev/null 2>&1; do : > /tmp/tap; done ) &
+    done
+    end=$(( $(date +%s) + secs ))
+    sleep 3; rm -f /tmp/tap
+    while kill -0 "$GAME_PID" 2>/dev/null; do
+        now=$(date +%s)
+        if [ "$now" -ge "$end" ]; then
+            bashio::log.info "Koniec czasu"; ENDED=time
+            mpv_cmd '"quit-watch-later"'
+            return 0
+        fi
+        if [ -e /tmp/tap ]; then
+            rm -f /tmp/tap
+            if [ "$armed" -gt 0 ] && [ $(( now - armed )) -ge 2 ] && [ $(( now - armed )) -le 6 ]; then
+                mpv_cmd '"quit-watch-later"'
+                return 0
+            fi
+            if [ "$armed" -eq 0 ] || [ $(( now - armed )) -gt 6 ]; then
+                armed=$now
+                mpv_cmd '"show-text","Dotknij jeszcze raz, zeby wyjsc",4000'
+            fi
+        fi
+        if read -r -t 1 line && [ "${line//\"/}" = quit ]; then ENDED=time; mpv_cmd '"quit-watch-later"'; return 0; fi
+    done
+    tail -n 20 /tmp/mpv.log 2>/dev/null
+    bashio::log.info "Bajka zakonczona"
 }
 
 pair_pad() {
@@ -128,9 +182,11 @@ line=""
 read -r -t 60 line
 line=${line//\"/}                          # hassio.addon_stdin wysyla tekst w cudzyslowach
 bashio::log.info "Polecenie: $line"
-read -r cmd game person minutes _ <<< "$line"
+read -r cmd arg1 arg2 arg3 <<< "$line"
 if [ "${cmd:-}" = play ]; then
-    play "${game:-}" "${person:-}" "${minutes:-}"
+    play "${arg1:-}" "${arg2:-}" "${arg3:-}"
+elif [ "${cmd:-}" = movie ]; then
+    movie "${arg1:-}" "${arg2:-}" "${arg3:-}"
 elif [ "${cmd:-}" = pair ]; then
     pair_pad
 elif [ "${cmd:-}" = connect ]; then
