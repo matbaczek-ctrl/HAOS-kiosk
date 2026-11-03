@@ -214,9 +214,9 @@ elif [ "${cmd:-}" = reset ]; then
     rom=$(rom_for "${arg1:-}") && [[ "${arg2:-}" =~ ^[a-z0-9_]{1,20}$ ]] && {
         base=${rom%.*}
         bashio::log.info "Reset: $base, $arg2"
-        ls -la "$DATA/$arg2/states" "$DATA/$arg2/saves" 2>&1
-        rm -f "$DATA/$arg2/states/$base".state* "$DATA/$arg2/saves/$base".srm
-        ls -la "$DATA/$arg2/states" "$DATA/$arg2/saves" 2>&1
+        ls -laR "$DATA/$arg2/states/PCSX-ReARMed" "$DATA/$arg2/saves/PCSX-ReARMed" 2>&1 | grep -v "^total"
+        rm -f "$DATA/$arg2/states"/*/"$base".state* "$DATA/$arg2/saves"/*/"$base".srm
+        ls -laR "$DATA/$arg2/states/PCSX-ReARMed" "$DATA/$arg2/saves/PCSX-ReARMed" 2>&1 | grep -v "^total"
     }
 elif [ "${cmd:-}" = movie ]; then
     movie "${arg1:-}" "${arg2:-}" "${arg3:-}"
