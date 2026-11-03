@@ -1,7 +1,7 @@
 ---
 name: "Family Hub RetroArch"
 description: "Natywny emulator SNES na ekranie Pi, uruchamiany zamiast kiosku"
-version: "0.3.1"
+version: "0.4.0"
 slug: "fh_retroarch"
 arch:
   - aarch64
@@ -21,10 +21,21 @@ privileged:
 map:
   - addon_config:rw
   - homeassistant_config:ro
+  - media:ro
 devices:
   - /dev/dri/card0
   - /dev/dri/card1
   - /dev/dri/renderD128
+  - /dev/video10
+  - /dev/video11
+  - /dev/video12
+  - /dev/video18
+  - /dev/video19
+  - /dev/video20
+  - /dev/video21
+  - /dev/video22
+  - /dev/video23
+  - /dev/video31
   - /dev/input/event0
   - /dev/input/event1
   - /dev/input/event2
