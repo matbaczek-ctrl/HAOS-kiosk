@@ -95,7 +95,7 @@ movie() {
     [[ "$secs" =~ ^[0-9]{1,4}$ ]] && [ "$secs" -ge 1 ] && [ "$secs" -le 3600 ] || { bashio::log.error "Zly czas"; return 1; }
     case "$name" in ""|*/*|*..*) bashio::log.error "Zla nazwa bajki"; return 1 ;; esac
     file="$MOVIE_DIR/$name"
-    [ -r "$file" ] || { bashio::log.error "Brak pliku $file"; return 1; }
+    [ -r "$file" ] || { bashio::log.error "Brak pliku $file"; id; grep media /proc/mounts; ls -la /media "$MOVIE_DIR" 2>&1; locale 2>&1 | head -3; return 1; }
 
     bashio::log.info "Bajka: $name, $person, $secs s"
     supervisor "${KIOSK}/stop" || bashio::log.warning "Nie udalo sie zatrzymac kiosku"
