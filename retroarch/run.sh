@@ -119,7 +119,7 @@ movie() {
     ls -l /dev/input/ 2>&1 | head -12
     bashio::log.info "Dotyk: [$(touch_devices | tr '\n' ' ')]"
     for dev in $(touch_devices); do
-        ( while dd if="$dev" of=/dev/null bs=4096 count=1 2>/dev/null; do : > /tmp/tap; done ) &
+        ( while dd if="$dev" of=/tmp/ev bs=4096 count=1 2>/dev/null; do od -An -v -tx1 -w24 /tmp/ev | grep -q '01 00 4a 01 01 00 00 00$' && : > /tmp/tap; done ) &
     done
     end=$(( $(date +%s) + secs ))
     sleep 3; rm -f /tmp/tap
@@ -133,7 +133,7 @@ movie() {
         if [ -e /tmp/tap ]; then
             rm -f /tmp/tap
             bashio::log.info "Dotkniecie ekranu (cisza $quiet)"
-            if [ "$armed" -gt 0 ] && [ "$quiet" -ge 2 ] && [ $(( now - armed )) -le 8 ]; then
+            if [ "$armed" -gt 0 ] && [ $(( now - armed )) -ge 2 ] && [ $(( now - armed )) -le 8 ]; then
                 mpv_cmd '"quit-watch-later"'
                 return 0
             fi
