@@ -70,6 +70,7 @@ play() {
     supervisor "${KIOSK}/stop" || bashio::log.warning "Nie udalo sie zatrzymac kiosku"
     sleep 2                                # kiosk musi oddac ekran
     dir="$DATA/$person"; mkdir -p "$dir/saves" "$dir/states"
+    find "$DATA" -name "*.state.auto*" -delete 2>/dev/null || true   # bez auto-zapisu: zawsze od poczatku
     { cat /etc/fh-retroarch.cfg
       echo "savefile_directory = \"$dir/saves\""
       echo "savestate_directory = \"$dir/states\""; } > /tmp/ra.cfg
